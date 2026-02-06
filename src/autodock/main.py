@@ -32,7 +32,11 @@ def dock(
         ..., help="Name of the ligand (e.g., ciprofloxacin)"
     ),
     mutation: Optional[str] = typer.Option(
-        None, help="Mutation in format CHAIN:RESIDUE:OLDAA:NEWAA (e.g., A:87:D:G)"
+        None,
+        help=(
+            "Mutation format: RES:NEW, CHAIN:RES:NEW, or CHAIN:RES:OLDAA:NEWAA "
+            "(e.g., 87:G, A:87:G, A:87:D:G)"
+        ),
     ),
     pocket: str = typer.Option(
         "default", help="Pocket name from config/pockets.yaml (default: 'default')"
@@ -83,10 +87,26 @@ def dock(
             if len(parts) == 2:
                 res_num, new_aa = int(parts[0]), parts[1]
                 chain_id = "A"
+                old_aa = None
             elif len(parts) == 3:
                 chain_id, res_num, new_aa = parts[0], int(parts[1]), parts[2]
+                old_aa = None
+            elif len(parts) == 4:
+                chain_id, res_num, old_aa, new_aa = (
+                    parts[0],
+                    int(parts[1]),
+                    parts[2],
+                    parts[3],
+                )
             else:
-                raise ValueError("Mutation format: RESIDUE:NEWAA or CHAIN:RESIDUE:NEWAA")
+                raise ValueError(
+                    "Mutation format: RES:NEW, CHAIN:RES:NEW, or CHAIN:RES:OLDAA:NEWAA"
+                )
+
+            if old_aa:
+                PrepareVina.assert_residue_identity(
+                    receptor_pdb_file, chain_id, res_num, old_aa
+                )
 
             receptor_pdb_file = PrepareVina.mutate_residue(
                 receptor_pdb_file, chain_id, res_num, new_aa
@@ -99,17 +119,23 @@ def dock(
         logger.info("Preparing receptor with pH-aware protonation...")
         receptor_pdbqt = prep.prepare_receptor(receptor_pdb_file)
 
-        # For ligand, assume it's cached or provide a path
+        # For ligand, allow pre-generated PDBQT to avoid re-prep
         ligand_dir = Path("data/ligands")
+        ligand_pdbqt_path = ligand_dir / f"{ligand_name}.pdbqt"
         ligand_pdb = ligand_dir / f"{ligand_name}.pdb"
-        if not ligand_pdb.exists():
-            raise FileNotFoundError(
-                f"Ligand {ligand_name} not found in {ligand_dir}. "
-                "Please provide a PDB or PDBQT file for the ligand."
-            )
-        
-        logger.info("Preparing ligand with flexibility detection...")
-        ligand_pdbqt = prep.prepare_ligand(ligand_pdb)
+
+        if ligand_pdbqt_path.exists():
+            logger.info("Using existing ligand PDBQT file")
+            ligand_pdbqt = ligand_pdbqt_path
+        else:
+            if not ligand_pdb.exists():
+                raise FileNotFoundError(
+                    f"Ligand {ligand_name} not found in {ligand_dir}. "
+                    "Please provide a PDB or PDBQT file for the ligand."
+                )
+
+            logger.info("Preparing ligand with flexibility detection...")
+            ligand_pdbqt = prep.prepare_ligand(ligand_pdb)
 
         # Step 4: Execute docking (The Fit)
         logger.info("Step 4: Executing docking simulation")

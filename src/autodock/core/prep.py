@@ -104,16 +104,19 @@ class PrepareVina:
         Returns:
             Path to output PDBQT.
         """
-        from meeko import MoleculePreparation, PDBQTWriterLegacy
+        from meeko import MoleculePreparation
         from rdkit import Chem
 
         logger.info(f"Using Meeko for enhanced preparation (pH={self.ph})")
 
         try:
-            # Read molecule
+            # Read molecule and ensure explicit hydrogens
             mol = Chem.MolFromPDBFile(str(pdb_file), removeHs=False)
             if mol is None:
                 raise RuntimeError(f"RDKit failed to parse PDB: {pdb_file}")
+
+            if Chem.AddHs(mol) is not None:
+                mol = Chem.AddHs(mol, addCoords=True)
 
             # Prepare with Meeko
             preparator = MoleculePreparation()
@@ -263,28 +266,16 @@ class PrepareVina:
             return False, f"Validation error: {e}"
 
     @staticmethod
-    def mutate_residue(
-        pdb_file: Path, chain_id: str, residue_num: int, new_aa: str
-    ) -> Path:
+    def _normalize_aa(aa_code: str) -> str:
         """
-        Mutate a residue in a PDB structure in silico using BioPython.
+        Normalize amino acid code to 3-letter uppercase.
 
         Args:
-            pdb_file: Path to input PDB file.
-            chain_id: Chain identifier (e.g., "A").
-            residue_num: Residue number to mutate.
-            new_aa: New amino acid (3-letter or 1-letter code, e.g., "GLY" or "G").
+            aa_code: 1-letter or 3-letter amino acid code.
 
         Returns:
-            Path to the mutated PDB file (saved as _mutant.pdb).
-
-        Raises:
-            RuntimeError: If mutation fails.
+            3-letter amino acid code.
         """
-        pdb_file = Path(pdb_file)
-        output_file = pdb_file.with_stem(pdb_file.stem + "_mutant")
-
-        # Convert 1-letter to 3-letter code if needed
         aa_3_to_1 = {
             "ALA": "A",
             "ARG": "R",
@@ -309,7 +300,67 @@ class PrepareVina:
         }
         aa_1_to_3 = {v: k for k, v in aa_3_to_1.items()}
 
-        new_aa_3 = aa_1_to_3.get(new_aa.upper(), new_aa.upper())
+        aa_code = aa_code.strip().upper()
+        return aa_1_to_3.get(aa_code, aa_code)
+
+    @staticmethod
+    def assert_residue_identity(
+        pdb_file: Path, chain_id: str, residue_num: int, expected_aa: str
+    ) -> None:
+        """
+        Assert that a residue in the PDB matches an expected amino acid.
+
+        Args:
+            pdb_file: Path to input PDB file.
+            chain_id: Chain identifier (e.g., "A").
+            residue_num: Residue number to validate.
+            expected_aa: Expected amino acid (1-letter or 3-letter code).
+
+        Raises:
+            RuntimeError: If residue not found or does not match.
+        """
+        pdb_file = Path(pdb_file)
+        expected_aa_3 = PrepareVina._normalize_aa(expected_aa)
+
+        try:
+            parser = PDB.PDBParser(QUIET=True)
+            structure = parser.get_structure("protein", str(pdb_file))
+            residue = structure[0][chain_id][residue_num]
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to locate residue {chain_id}:{residue_num} in {pdb_file}: {e}"
+            )
+
+        actual_aa_3 = residue.resname.upper()
+        if actual_aa_3 != expected_aa_3:
+            raise RuntimeError(
+                f"Residue mismatch at {chain_id}:{residue_num}. "
+                f"Expected {expected_aa_3}, found {actual_aa_3}."
+            )
+
+    @staticmethod
+    def mutate_residue(
+        pdb_file: Path, chain_id: str, residue_num: int, new_aa: str
+    ) -> Path:
+        """
+        Mutate a residue in a PDB structure in silico using BioPython.
+
+        Args:
+            pdb_file: Path to input PDB file.
+            chain_id: Chain identifier (e.g., "A").
+            residue_num: Residue number to mutate.
+            new_aa: New amino acid (3-letter or 1-letter code, e.g., "GLY" or "G").
+
+        Returns:
+            Path to the mutated PDB file (saved as _mutant.pdb).
+
+        Raises:
+            RuntimeError: If mutation fails.
+        """
+        pdb_file = Path(pdb_file)
+        output_file = pdb_file.with_stem(pdb_file.stem + "_mutant")
+
+        new_aa_3 = PrepareVina._normalize_aa(new_aa)
 
         logger.info(
             f"Mutating {pdb_file}: Chain {chain_id}, Res {residue_num} -> {new_aa_3}"
