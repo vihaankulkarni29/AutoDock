@@ -9,14 +9,15 @@ pockets:
     size_z: 20.0
 
   GyrA_pocket:
-    # DNA gyrase (topoisomerase II) ATP-binding pocket
-    # Reference: PDB 3NUU
-    center_x: 10.5
-    center_y: 20.3
-    center_z: 15.8
-    size_x: 25.0
-    size_y: 25.0
-    size_z: 25.0
+    # DNA gyrase (topoisomerase II) Ciprofloxacin-binding pocket
+    # Reference: PDB 2XCT (S. aureus Gyrase + Ciprofloxacin, 3.35 Å resolution)
+    # CPF center extracted from ligand coordinates
+    center_x: 2.822
+    center_y: 43.729
+    center_z: 68.710
+    size_x: 6.0
+    size_y: 10.0
+    size_z: 15.0
 
   GyrA_D87_pocket:
     # Pocket focused on D87 residue for mutation studies
