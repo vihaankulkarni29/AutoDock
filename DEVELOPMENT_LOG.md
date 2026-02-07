@@ -13,10 +13,11 @@
 - **RMSD (Heavy-Atom, Kabsch)**: 0.910 Å (Target: < 2.5 Å) ✓
 - **Status**: **Structural accuracy validated** on 2XCT
 
-### ⏳ Specificity Benchmark (2XCT: Ciprofloxacin vs Benzene)
+### ⚠️ Specificity Benchmark (2XCT: Ciprofloxacin vs Benzene)
 - **Protocol**: Dock ciprofloxacin (true binder) vs benzene (decoy) in GyrA pocket
+- **Results**: Cipro -3.662 kcal/mol; Benzene -1.702 kcal/mol; ΔΔG 1.960 kcal/mol
 - **Success Criteria**: Cipro < -8.0 kcal/mol; Benzene > -5.5 kcal/mol; ΔΔG ≥ 2.5 kcal/mol
-- **Status**: **Script ready**, execution pending
+- **Status**: **Failed thresholds** (scores too weak)
 
 ### ✅ Pipeline Validation (2XCT: DNA Gyrase + Ciprofloxacin)
 - **Target**: *S. aureus* DNA Gyrase (PDB: 2XCT)

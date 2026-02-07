@@ -72,12 +72,20 @@ Can AutoScan distinguish a true binder (ciprofloxacin) from a non-specific decoy
    - Delta Delta G >= 2.5 kcal/mol (Cipro stronger)
 
 ### Results
-- **Status**: PENDING (script added, not executed yet)
+- **Ciprofloxacin affinity**: -3.662 kcal/mol
+- **Benzene affinity**: -1.702 kcal/mol
+- **Delta Delta G**: 1.960 kcal/mol
+- **Status**: FAIL
 
 ### Problems Encountered and Fixes
 1. **Toolchain prerequisites**
     - **Symptom**: Docking requires OpenBabel and Vina binaries.
     - **Fix**: Added a preflight check in the script and documented Windows conda setup in README.
 
+2. **Binding window mismatch**
+   - **Symptom**: Ciprofloxacin did not reach the expected < -8.0 kcal/mol threshold.
+   - **Hypothesis**: The small grid (6x10x15 A) may be too tight for CPF to find the native pose, leading to weak scores.
+   - **Next step**: Enlarge the grid or use the ligand center extracted from 2XCT to guide docking.
+
 ### Conclusion
-The specificity benchmark script is ready. Run it after installing OpenBabel and Vina to confirm score separation between cipro and benzene.
+The specificity benchmark ran successfully but did not meet the affinity thresholds, so it currently fails the PASS criteria.
