@@ -110,30 +110,61 @@ def shuffle_ligand(ligand_in: Path, ligand_out: Path, seed: int = 7) -> None:
     io.save(str(ligand_out))
 
 
-def parse_pdb_coords(pdb_path: Path) -> np.ndarray:
+def parse_pdb_coords(pdb_path: Path) -> list[tuple[str, np.ndarray]]:
     parser = PDBParser(QUIET=True)
     structure = parser.get_structure("ref", str(pdb_path))
-    atoms = list(structure.get_atoms())
+    atoms = [atom for atom in structure.get_atoms() if atom.element != "H"]
     if not atoms:
         raise RuntimeError(f"No atoms found in {pdb_path}")
-    return np.array([atom.get_coord() for atom in atoms], dtype=float)
+    labels = []
+    counts: dict[str, int] = {}
+    for atom in atoms:
+        name = atom.get_name().strip()
+        counts[name] = counts.get(name, 0) + 1
+        labels.append((f"{name}:{counts[name]}", atom.get_coord()))
+    return [(label, np.array(coord, dtype=float)) for label, coord in labels]
 
 
-def parse_pdbqt_coords(pdbqt_path: Path) -> np.ndarray:
+def parse_pdbqt_coords(pdbqt_path: Path) -> list[tuple[str, np.ndarray]]:
     coords = []
+    counts: dict[str, int] = {}
     with open(pdbqt_path, "r") as handle:
         for line in handle:
             if line.startswith("ATOM") or line.startswith("HETATM"):
+                atom_name = line[12:16].strip()
+                element = line[76:78].strip()
+                if not element:
+                    element = atom_name[:1]
+                if element.upper() == "H":
+                    continue
                 try:
                     x = float(line[30:38])
                     y = float(line[38:46])
                     z = float(line[46:54])
                 except ValueError:
                     continue
-                coords.append([x, y, z])
+                counts[atom_name] = counts.get(atom_name, 0) + 1
+                label = f"{atom_name}:{counts[atom_name]}"
+                coords.append((label, np.array([x, y, z], dtype=float)))
     if not coords:
         raise RuntimeError(f"No atom coordinates found in {pdbqt_path}")
-    return np.array(coords, dtype=float)
+    return coords
+
+
+def match_coords(
+    reference: list[tuple[str, np.ndarray]],
+    docked: list[tuple[str, np.ndarray]],
+) -> tuple[np.ndarray, np.ndarray]:
+    docked_map = {label: coord for label, coord in docked}
+    ref_coords = []
+    docked_coords = []
+    for label, coord in reference:
+        if label in docked_map:
+            ref_coords.append(coord)
+            docked_coords.append(docked_map[label])
+    if len(ref_coords) < 3:
+        raise RuntimeError("Insufficient matched atoms for RMSD calculation")
+    return np.array(ref_coords), np.array(docked_coords)
 
 
 def kabsch_rmsd(reference: np.ndarray, mobile: np.ndarray) -> float:
@@ -183,9 +214,11 @@ def main() -> None:
     ligand_pdbqt = OUTPUT_DIR / "ligand_shuffled.pdbqt"
     docked_pdbqt = OUTPUT_DIR / "ligand_shuffled_docked.pdbqt"
 
-    pdb_path = RECEPTOR_DIR / f"{PDB_ID}.pdb"
+    pdb_path = RECEPTOR_DIR / f"{PDB_ID}_orig.pdb"
     if not pdb_path.exists():
-        pdb_path = fetch_pdb(PDB_ID, pdb_path)
+        pdb_path = RECEPTOR_DIR / f"{PDB_ID}.pdb"
+        if not pdb_path.exists():
+            pdb_path = fetch_pdb(PDB_ID, pdb_path)
 
     split_structure(pdb_path, receptor_ref, ligand_ref)
     shuffle_ligand(ligand_ref, ligand_shuffled)
@@ -206,9 +239,9 @@ def main() -> None:
         num_modes=1,
     )
 
-    reference_coords = parse_pdb_coords(ligand_ref)
-    docked_coords = parse_pdbqt_coords(docked_pdbqt)
-
+    reference_atoms = parse_pdb_coords(ligand_ref)
+    docked_atoms = parse_pdbqt_coords(docked_pdbqt)
+    reference_coords, docked_coords = match_coords(reference_atoms, docked_atoms)
     rmsd = kabsch_rmsd(reference_coords, docked_coords)
     status = "PASS" if rmsd < 2.5 else "FAIL"
 
