@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 
 
 class PrepareVina:
-    """Prepare molecules for AutoDock Vina with enhanced molecular preparation."""
+    """Prepare molecules for Vina with enhanced molecular preparation."""
 
     def __init__(self, use_meeko: bool = True, ph: float = 7.4):
         """
@@ -385,3 +385,7 @@ class PrepareVina:
             return output_file
         except Exception as e:
             raise RuntimeError(f"Mutation failed: {e}")
+
+
+
+

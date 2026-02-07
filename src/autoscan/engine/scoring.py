@@ -83,7 +83,7 @@ class Scorer(ABC):
 
 
 class VinaScorer(Scorer):
-    """AutoDock Vina scoring function."""
+    """Vina scoring function."""
 
     def __init__(self, executable: str = "vina"):
         super().__init__(executable)
@@ -407,3 +407,7 @@ class ConsensusScorer:
         import statistics
 
         return statistics.stdev(scores)
+
+
+
+

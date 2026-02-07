@@ -1,5 +1,5 @@
 """
-AutoDock Vina Wrapper: Execute molecular docking simulations.
+Vina Wrapper: Execute molecular docking simulations.
 """
 
 import json
@@ -29,7 +29,7 @@ class DockingResult:
 
 
 class VinaWrapper:
-    """Wrapper around AutoDock Vina binary for molecular docking."""
+    """Wrapper around the Vina binary for molecular docking."""
 
     def __init__(self, vina_executable: str = "vina"):
         """
@@ -51,7 +51,7 @@ class VinaWrapper:
                 text=True,
                 timeout=5,
             )
-            if "AutoDock Vina" in result.stdout or "AutoDock Vina" in result.stderr:
+            if "AutoScan Vina" in result.stdout or "AutoScan Vina" in result.stderr:
                 logger.info(f"Vina found: {self.vina_executable}")
             else:
                 logger.warning("Vina help output unexpected")
@@ -60,7 +60,7 @@ class VinaWrapper:
         except FileNotFoundError:
             raise RuntimeError(
                 f"Vina not found at '{self.vina_executable}'. "
-                "Please install AutoDock Vina and ensure it's in your PATH."
+                "Please install AutoScan Vina and ensure it's in your PATH."
             )
 
     def dock(
@@ -247,3 +247,7 @@ class VinaWrapper:
             output["consensus_mode"] = False
 
         return json.dumps(output)
+
+
+
+

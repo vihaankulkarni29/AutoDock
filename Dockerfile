@@ -5,12 +5,12 @@ FROM python:3.9-slim
 WORKDIR /app
 
 # Install system dependencies
-# CRITICAL: openbabel and autodock-vina are essential for the docking engine
+# CRITICAL: openbabel and autoscan-vina are essential for the docking engine
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
     openbabel \
-    autodock-vina \
+    autoscan-vina \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -24,10 +24,12 @@ RUN pip install --no-cache-dir -e .
 # Create data directories
 RUN mkdir -p /app/data/receptors /app/data/ligands
 
-# Autoscan runtime defaults
+# AutoScan runtime defaults
 ENV AUTOSCAN_DATA_DIR=/app/data \
     AUTOSCAN_CONFIG_DIR=/app/config
 
 # Set the entrypoint to the CLI
 ENTRYPOINT ["autoscan"]
 CMD ["--help"]
+
+

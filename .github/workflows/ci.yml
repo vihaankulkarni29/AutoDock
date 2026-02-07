@@ -23,13 +23,13 @@ jobs:
           pip install black pylint mypy
       
       - name: Lint with Black
-        run: black --check src/autodock tests/
+        run: black --check src/autoscan tests/
       
       - name: Lint with Pylint
-        run: pylint src/autodock --exit-zero
+        run: pylint src/autoscan --exit-zero
       
       - name: Type check with mypy
-        run: mypy src/autodock --ignore-missing-imports
+        run: mypy src/autoscan --ignore-missing-imports
 
   test:
     runs-on: ubuntu-latest
@@ -44,7 +44,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y openbabel autodock-vina
+          sudo apt-get install -y openbabel autoscan-vina
       
       - name: Install Python dependencies
         run: |
@@ -52,7 +52,7 @@ jobs:
           pip install -e ".[dev]"
       
       - name: Run tests
-        run: pytest tests/ -v --cov=src/autodock
+        run: pytest tests/ -v --cov=src/autoscan
 
   docker:
     runs-on: ubuntu-latest
@@ -62,7 +62,9 @@ jobs:
       - uses: actions/checkout@v3
       
       - name: Build Docker image
-        run: docker build -t autodock:latest .
+        run: docker build -t autoscan:latest .
       
       - name: Test Docker image
-        run: docker run --rm autodock:latest --help
+        run: docker run --rm autoscan:latest --help
+
+

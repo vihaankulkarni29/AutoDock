@@ -16,7 +16,7 @@ This tool predicts **binding affinity (Delta G)** to detect how mutations affect
 ## Features
 
 - **Automated Virtual Screening**: Rapidly screen small molecule libraries against bacterial targets.
-- **Physics-Based Scoring**: Uses AutoDock Vina to calculate Delta G binding affinities.
+- **Physics-Based Scoring**: Uses Vina to calculate Delta G binding affinities.
 - **Resistance Prediction (Beta)**: Currently detects steric clashes for large structural changes. Note: single-point mutation resistance prediction is under development (integration with Molecular Dynamics planned).
 
 ## Architectural Design
@@ -39,7 +39,7 @@ AutoScan/
 │   │   ├── fetcher.py          # RCSB PDB downloader
 │   │   └── prep.py             # PDB → PDBQT converter (OpenBabel wrapper)
 │   ├── engine/
-│   │   ├── vina.py             # AutoDock Vina wrapper (physics engine)
+│   │   ├── vina.py             # Vina wrapper (physics engine)
 │   │   └── grid.py             # Grid box calculator
 │   ├── utils/
 │   │   └── logger.py           # Logging utility
@@ -68,10 +68,10 @@ pip install -e .
 
 # Install system dependencies (Linux/macOS)
 # Ubuntu/Debian:
-sudo apt-get install openbabel autodock-vina
+sudo apt-get install openbabel autoscan-vina
 
 # macOS (via Homebrew):
-brew install open-babel autodock-vina
+brew install open-babel autoscan-vina
 ```
 
 ### Docker (Recommended for Production)
@@ -196,7 +196,7 @@ from autoscan.core import PDBFetcher, PrepareVina
 from autoscan.engine import VinaWrapper, GridCalculator
 
 class MutationScanModule7:
-    """AutoScan integration into MutationScan pipeline."""
+  """AutoScan integration into MutationScan pipeline."""
 
     def run(self, pdb_id: str, ligand: str, mutations: List[str]) -> Dict:
         results = {}
@@ -214,7 +214,7 @@ class MutationScanModule7:
 - **Python**: 3.9+
 - **System Tools** (CRITICAL):
   - `openbabel` (PDB ↔ PDBQT conversion)
-  - `autodock-vina` (Molecular docking engine)
+  - `autoscan-vina` (Vina docking engine)
   - `curl` (optional, for automated PDB download)
 
 ## Anti-Hallucination Constraints
@@ -251,7 +251,7 @@ python -m build
 ## References
 
 - **PDB**: https://www.rcsb.org/
-- **AutoDock Vina**: https://vina.scripps.edu/
+- **Vina**: https://vina.scripps.edu/
 - **OpenBabel**: https://openbabel.org/
 - **BioPython**: https://biopython.org/
 
@@ -267,3 +267,5 @@ For questions or contributions, contact the Bioinformatics Team.
 
 **Version**: 0.1.0 (Alpha)  
 **Status**: Under active development
+
+

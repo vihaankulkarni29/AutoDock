@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 
 @dataclass
 class GridBox:
-    """Represents an AutoDock Vina grid box."""
+    """Represents a Vina grid box."""
 
     center_x: float
     center_y: float
@@ -97,3 +97,7 @@ class GridCalculator:
                 f"Pocket '{pocket_name}' not found. Available: {list(self.pockets.keys())}"
             )
         return self.pockets[pocket_name]
+
+
+
+
