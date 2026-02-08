@@ -89,3 +89,17 @@ Can AutoScan distinguish a true binder (ciprofloxacin) from a non-specific decoy
 
 ### Conclusion
 The specificity benchmark ran successfully but did not meet the affinity thresholds, so it currently fails the PASS criteria.
+
+## Adaptive Physics Engine Progress
+
+### Objective
+Implement a robust grid box calculation for active-site residues with geometric centering, buffered extents, and volume validation.
+
+### What Changed
+- Added `src/autoscan/docking/utils.py` with `calculate_grid_box` and a `GridBox` dataclass.
+- Computes centroid and min/max extents from residue atom coordinates.
+- Adds a configurable buffer (default 6.0 A) to each dimension.
+- Validates volume against a maximum (default 30,000 A^3) and errors on invalid dimensions.
+
+### Status
+- Implementation complete. Pending integration with any downstream grid usage.
