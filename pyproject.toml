@@ -53,7 +53,7 @@ Documentation = "https://github.com/vihaankulkarni29/AutoScan"
 Issues = "https://github.com/vihaankulkarni29/AutoScan/issues"
 
 [tool.setuptools]
-packages = ["autoscan", "autoscan.core", "autoscan.engine", "autoscan.utils"]
+packages = ["autoscan", "autoscan.core", "autoscan.engine", "autoscan.utils", "autoscan.docking", "autoscan.dynamics"]
 package-dir = {"" = "src"}
 
 [tool.black]

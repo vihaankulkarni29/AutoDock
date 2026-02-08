@@ -49,6 +49,45 @@ Can AutoScan reproduce the crystallographic pose of ciprofloxacin in 2XCT?
 ### Conclusion
 The redocking benchmark passed with RMSD 0.910 A, validating AutoScan's structural accuracy on the 2XCT reference system.
 
+## Test 3: Structural Benchmark Script (AutoScan Redocking)
+
+### Scientific Question
+Can AutoScan reproduce the crystallographic pose of ciprofloxacin in 2XCT using the benchmarks pipeline?
+
+### Protocol Summary
+1. **Fetch** PDB 2XCT (S. aureus gyrase + CPF).
+2. **Split** protein chains A/B and ligand CPF into separate PDBs.
+3. **Shuffle** ligand pose and convert structures to PDBQT via OpenBabel.
+4. **Dock** shuffled ligand using the AutoScan Vina engine with ligand-sized grid.
+5. **Compare** docked ligand vs crystal ligand using heavy-atom RMSD.
+6. **Pass/Fail** threshold: RMSD < 2.5 A.
+
+### Implementation Notes
+- Script: tests/benchmarks/structural_benchmark.py
+- Ligand code: CPF
+- Heavy atoms: C, N, O, F, Cl
+- Grid: calculated from ligand dimensions via autoscan.docking.utils
+
+### Results
+- **Mean RMSD**: 0.001 A
+- **Success rate**: 80.0%
+- **Suite verdict**: PASS
+
+| Target | Docked Energy (kcal/mol) | RMSD (A) | Status |
+|---|---:|---:|---|
+| 2XCT:CPF | -4.923 | 0.001 | PASS |
+| 1HXB:ROC | NA | NA | ERROR |
+| 1IEP:STI | -18.040 | 0.001 | PASS |
+| 3ERT:OHT | -14.130 | 0.001 | PASS |
+| 5UH6:RFP | -16.550 | 0.001 | PASS |
+
+### Problems Encountered and Fixes
+
+1. **1HXB ligand atom typing failed (OpenBabel -> Vina)**
+   - **Symptom**: `Atom type Nd is not a valid AutoDock type` during docking.
+   - **Impact**: 1HXB failed; others passed.
+   - **Next step**: Regenerate the ligand PDBQT using Meeko or AutoDockTools for ROC.
+
 ## Test 2: Thermodynamic/Kinetic Validation (Specificity Benchmark)
 
 ### Scientific Question

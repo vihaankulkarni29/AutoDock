@@ -198,8 +198,8 @@ def main() -> None:
     missing = []
     if shutil.which("obabel") is None:
         missing.append("obabel (OpenBabel)")
-    if shutil.which("autoscan-vina") is None:
-        missing.append("autoscan-vina")
+    if shutil.which("vina") is None:
+        missing.append("vina")
     if missing:
         print("Missing required system tools:")
         for tool in missing:
