@@ -61,12 +61,21 @@ venv.bak/
 *.sublime-project
 *.sublime-workspace
 
+# --- AutoScan Data (The Firewall) ---
+data/
+workspace/
+results/
+logs/
+
 # Local data (PDB files, etc.)
-data/receptors/
-data/ligands/
 *.pdb
 *.pdbqt
 *.log
+
+# --- Tools ---
+tools/
+*.exe
+*.dll
 
 # Docker
 .docker/

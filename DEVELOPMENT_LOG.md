@@ -2,7 +2,12 @@
 
 ## Project Status: Production-Ready with Known Limitations
 
-**Last Updated**: February 7, 2026
+**Last Updated**: February 10, 2026
+
+## Update: Clean Loop Validation Harness
+
+- Added pytest-based structural validation module in tests/ that uses workspace/ for data and cleans up unless KEEP_WORKSPACE=1.
+- Integrated Vina grid sizing from crystal ligand center of mass for the 2XCT redocking test.
 
 ---
 
