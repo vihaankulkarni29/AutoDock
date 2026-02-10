@@ -4,6 +4,13 @@
 
 **Last Updated**: February 10, 2026
 
+## Phase 1 Structural Validation (N=10)
+
+- Executed tests/benchmark_phase1.py with workspace isolation and report append.
+- PASS targets: 2XCT, 1IEP, 3ERT, 1M17, 3LN1, 2HU4 (RMSD ~0.001 A; affinity < -7.0).
+- FAIL/ERROR targets: 1HXB (invalid atom type Nd), 1SQN/1OQA/4DJU (ligand not found in PDB).
+- Current success rate: 60.0% (below 80% threshold); requires ligand mapping fixes and ROC PDBQT preparation.
+
 ## Update: Clean Loop Validation Harness
 
 - Added pytest-based structural validation module in tests/ that uses workspace/ for data and cleans up unless KEEP_WORKSPACE=1.

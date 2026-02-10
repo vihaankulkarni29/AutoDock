@@ -201,13 +201,15 @@ class VinaWrapper:
     def _parse_affinity(output: str) -> float:
         """Parse binding affinity (ΔG) from Vina output."""
         # Vina 1.2.x prints a results table with affinity column
-        table_match = re.search(
-            r"^\s*1\s+([-+]?\d*\.?\d+(?:e[-+]?\d+)?)\s+",
+        table_matches = re.findall(
+            r"^\s*\d+\s+([-+]?\d*\.?\d+(?:e[-+]?\d+)?)\s+",
             output,
             flags=re.MULTILINE | re.IGNORECASE,
         )
-        if table_match:
-            return float(table_match.group(1))
+        for match in table_matches:
+            value = float(match)
+            if -200.0 < value < 50.0:
+                return value
 
         # Legacy pattern: numeric value followed by kcal/mol
         match = re.search(r"([-+]?\d*\.?\d+(?:e[-+]?\d+)?)\s+kcal/mol", output)
