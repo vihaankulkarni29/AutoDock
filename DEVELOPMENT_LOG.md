@@ -2,7 +2,14 @@
 
 ## Project Status: Production-Ready with Known Limitations
 
-**Last Updated**: February 10, 2026
+**Last Updated**: February 11, 2026
+
+## Dependency Enforcement Update
+
+- Ran zero-trust dependency build on Feb 11, 2026.
+- Installed: mdtraj 1.11.1.post1 (from builder).
+- Still blocked: openmm==8.0.0 not available in current Python 3.14 venv, numpy==1.24.3 not installed, OpenBabel missing, PDBFixer missing.
+- Builder requires system installs for OpenBabel and PDBFixer, plus a compatible Python environment for openmm/numpy pins.
 
 ## Phase 1 Structural Validation (N=10)
 

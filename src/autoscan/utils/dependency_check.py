@@ -35,6 +35,11 @@ _REQUIRED_BINARIES = {
     },
 }
 
+_PINNED_PYTHON = {
+    "openmm": "8.0.0",
+    "numpy": "1.24.3",
+}
+
 
 def find_repo_root(start: Path) -> Path:
     for candidate in [start] + list(start.parents):
@@ -164,6 +169,31 @@ def _check_manifest_in_pyproject(pyproject_path: Path) -> list[str]:
     return issues
 
 
+def _pip_executable() -> list[str]:
+    return [sys.executable, "-m", "pip"]
+
+
+def _python_install_commands() -> list[list[str]]:
+    commands: list[list[str]] = []
+    for name, spec in _REQUIRED_PYTHON.items():
+        if spec["op"] == "==":
+            requirement = f"{name}=={spec['version']}"
+        else:
+            requirement = f"{name}>={spec['version']}"
+        commands.append(_pip_executable() + ["install", requirement])
+    return commands
+
+
+def _binary_install_hints(repo_root: Path) -> list[str]:
+    hints: list[str] = []
+    vina_path = _vina_binary_path(repo_root)
+    if not vina_path.exists():
+        hints.append("Run: python setup_env.py (downloads AutoDock Vina into tools/)")
+    hints.append("Install OpenBabel 3.1.1+ and set OBABEL_EXE if not on PATH.")
+    hints.append("Install pdbfixer 1.8+ and set PDBFIXER_EXE if not on PATH.")
+    return hints
+
+
 def _vina_binary_path(repo_root: Path) -> Path:
     if sys.platform.startswith("win"):
         return repo_root / "tools" / "vina.exe"
@@ -265,3 +295,34 @@ def ensure_dependencies() -> None:
     if issues:
         details = "\n".join(f"- {issue}" for issue in issues)
         raise RuntimeError(f"Dependency check failed:\n{details}")
+
+
+def build_dependencies(*, install_python: bool = True, quiet: bool = False) -> None:
+    repo_root = find_repo_root(Path(__file__).resolve())
+    pyproject_path = repo_root / "pyproject.toml"
+
+    issues: list[str] = []
+    issues.extend(_check_manifest_in_pyproject(pyproject_path))
+    issues.extend(_check_python_dependencies())
+    issues.extend(_check_vina(repo_root))
+    issues.extend(_check_obabel())
+    issues.extend(_check_pdbfixer())
+
+    if not issues:
+        if not quiet:
+            print("Dependency check: PASS")
+        return
+
+    if install_python:
+        for cmd in _python_install_commands():
+            subprocess.run(cmd, check=False)
+
+    hints = _binary_install_hints(repo_root)
+    details = "\n".join(f"- {issue}" for issue in issues)
+    hint_text = "\n".join(f"- {hint}" for hint in hints)
+    raise RuntimeError(
+        "Dependency check failed after build attempt:\n"
+        f"{details}\n"
+        "Remediation hints:\n"
+        f"{hint_text}"
+    )
