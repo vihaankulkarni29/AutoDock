@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import shutil
@@ -34,6 +35,9 @@ _REQUIRED_BINARIES = {
         "version": "1.8",
     },
 }
+
+_CONDA_ENV_NAME = "autoscan-tools"
+_CONDA_PYTHON_VERSION = "3.10"
 
 _PINNED_PYTHON = {
     "openmm": "8.0.0",
@@ -190,8 +194,10 @@ def _binary_install_hints(repo_root: Path) -> list[str]:
     if not vina_path.exists():
         hints.append("Run: python setup_env.py (downloads AutoDock Vina into tools/)")
     hints.append("Install Miniconda/Anaconda and ensure `conda` is on PATH.")
-    hints.append("Install OpenBabel 3.1.1+ and set OBABEL_EXE if not on PATH.")
-    hints.append("Install pdbfixer 1.8+ and set PDBFIXER_EXE if not on PATH.")
+    hints.append(
+        f"Run: conda create -y -n {_CONDA_ENV_NAME} python={_CONDA_PYTHON_VERSION} -c conda-forge openbabel pdbfixer"
+    )
+    hints.append("Set OBABEL_EXE/PDBFIXER_EXE or use `conda run -n autoscan-tools`.")
     return hints
 
 
@@ -201,6 +207,32 @@ def _conda_executable() -> str | None:
         return conda_exe
     resolved = shutil.which("conda")
     return resolved
+
+
+def _conda_run(command: list[str]) -> subprocess.CompletedProcess[str]:
+    conda_exe = _conda_executable()
+    if not conda_exe:
+        raise FileNotFoundError("Conda not available")
+    cmd = [conda_exe, "run", "-n", _CONDA_ENV_NAME, *command]
+    return subprocess.run(cmd, capture_output=True, text=True, check=False)
+
+
+def _conda_package_version(package: str) -> str | None:
+    conda_exe = _conda_executable()
+    if not conda_exe:
+        return None
+    cmd = [conda_exe, "list", "-n", _CONDA_ENV_NAME, package, "--json"]
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    if result.returncode != 0:
+        return None
+    try:
+        data = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return None
+    for entry in data:
+        if entry.get("name") == package and entry.get("version"):
+            return entry["version"]
+    return None
 
 
 def _check_conda() -> list[str]:
@@ -214,14 +246,31 @@ def _install_with_conda(packages: list[str]) -> None:
     conda_exe = _conda_executable()
     if not conda_exe:
         return
-    cmd = [conda_exe, "install", "-y", "-c", "conda-forge", *packages]
-    subprocess.run(cmd, check=False)
+    create_cmd = [
+        conda_exe,
+        "create",
+        "-y",
+        "-n",
+        _CONDA_ENV_NAME,
+        f"python={_CONDA_PYTHON_VERSION}",
+        "-c",
+        "conda-forge",
+        *packages,
+    ]
+    subprocess.run(create_cmd, check=False)
 
 
 def _vina_binary_path(repo_root: Path) -> Path:
     if sys.platform.startswith("win"):
         return repo_root / "tools" / "vina.exe"
     return repo_root / "tools" / "vina"
+
+
+def _detect_version_from_output(output: str) -> str | None:
+    match = re.search(r"(\d+\.\d+\.\d+)", output)
+    if match:
+        return match.group(1)
+    return None
 
 
 def _detect_command_version(command: str) -> str | None:
@@ -237,9 +286,9 @@ def _detect_command_version(command: str) -> str | None:
         except Exception:
             continue
         output = (result.stdout or "") + (result.stderr or "")
-        match = re.search(r"(\d+\.\d+\.\d+)", output)
-        if match:
-            return match.group(1)
+        version = _detect_version_from_output(output)
+        if version:
+            return version
     return None
 
 
@@ -267,10 +316,24 @@ def _check_obabel() -> list[str]:
     issues: list[str] = []
     obabel_exe = os.environ.get("OBABEL_EXE", "obabel")
     if not (Path(obabel_exe).exists() or shutil.which(obabel_exe)):
-        issues.append("OpenBabel executable not found. Set OBABEL_EXE or add to PATH.")
-        return issues
+        try:
+            version = _conda_package_version("openbabel")
+            if not version:
+                result = _conda_run(["obabel", "-V"])
+                output = (result.stdout or "") + (result.stderr or "")
+                version = _detect_version_from_output(output)
+            if not version:
+                result = _conda_run(["obabel", "--version"])
+                output = (result.stdout or "") + (result.stderr or "")
+                version = _detect_version_from_output(output)
+        except FileNotFoundError:
+            version = None
+        if version is None:
+            issues.append("OpenBabel executable not found. Set OBABEL_EXE or add to PATH.")
+            return issues
+    else:
+        version = _detect_command_version(obabel_exe)
 
-    version = _detect_command_version(obabel_exe)
     required = _REQUIRED_BINARIES["obabel"]
     if version is None:
         issues.append("Could not detect OpenBabel version.")
@@ -285,14 +348,25 @@ def _check_pdbfixer() -> list[str]:
     issues: list[str] = []
     pdbfixer_exe = os.environ.get("PDBFIXER_EXE", "pdbfixer")
     if not (Path(pdbfixer_exe).exists() or shutil.which(pdbfixer_exe)):
-        issues.append("PDBFixer executable not found. Install pdbfixer or add to PATH.")
-        return issues
-
-    version = None
-    try:
-        version = metadata.version("pdbfixer")
-    except metadata.PackageNotFoundError:
-        version = _detect_command_version(pdbfixer_exe)
+        try:
+            version = _conda_package_version("pdbfixer")
+            if not version:
+                result = _conda_run(
+                    ["python", "-c", "import pdbfixer; print(pdbfixer.__version__)"]
+                )
+                output = (result.stdout or "") + (result.stderr or "")
+                version = _detect_version_from_output(output)
+        except FileNotFoundError:
+            version = None
+        if version is None:
+            issues.append("PDBFixer executable not found. Install pdbfixer or add to PATH.")
+            return issues
+    else:
+        version = None
+        try:
+            version = metadata.version("pdbfixer")
+        except metadata.PackageNotFoundError:
+            version = _detect_command_version(pdbfixer_exe)
 
     required = _REQUIRED_BINARIES["pdbfixer"]
     if version is None:
